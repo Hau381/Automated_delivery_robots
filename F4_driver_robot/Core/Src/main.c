@@ -31,12 +31,12 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 double Kp1 = 14 , Kp2 = 15, Ki1 = 200, Ki2= 200, Kd1 =0, Kd2 =0, Ts =0.005 ; /*PID parameter for  velocity Control*/
-double Kp_1 = 15 , Kp_2 = 19, Ki_1 = 60, Ki_2= 50, Kd_1 =2, Kd_2 =3; /*PID parameter for positon Control */
+double Kp_1 = 15 , Kp_2 = 19, Ki_1 = 60, Ki_2= 20, Kd_1 =2, Kd_2 =3; /*PID parameter for positon Control */
 double e1,e2; 
 volatile int32_t	encoder_cnt1 = 0, encoder_cnt_pre1 = 0, encoder_cnt2 = 0, encoder_cnt_pre2 = 0,test1,test2, s_pos1 = 0, s_pos2 =0;
 volatile short rate1,pulse1,rate2,pulse2,s_rate1 = 0,s_rate2 =0,test, x = 999;
 volatile int pid1,pid2;
-uint8_t u8_Rx_Data[256],u8_Tx_Data[30] ,u8_Rx_SPI[1], u8_Rx_c, control_mode = Control_V, send_mode = Block;
+uint8_t u8_Rx_Data[256],u8_Tx_Data[30] ,u8_Rx_SPI[1], u8_Rx_c, control_mode = Control_V, send_mode = Block, error_state = 0;
 uint8_t start_buff = 0;
 uint8_t end_buff = 255;
 
@@ -856,9 +856,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		/* Send Data every two circle Timer1 (10ms)*/
 		static uint8_t t =0;
 		t ++;
-		if (t ==1){
+		if (t%2){
 		tran_mess(send_mode);
-		t=0;
+		}
+		
+		if (t == 100){
+		if (error_state == 0){
+		s_rate1 = 0;
+		s_rate2 = 0;
+		control_mode = Control_V;
+		}
+		else
+		{
+			error_state--;
+		}
 		}
 	}
 		
@@ -867,6 +878,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+	error_state = 1;
 	u8_Rx_Data[start_buff] = u8_Rx_c ;
 	start_buff++ ;
 	if (start_buff == end_buff)
